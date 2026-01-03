@@ -1,0 +1,8 @@
+README.md
+pyproject.toml
+src/binaryalign/__init__.py
+src/binaryalign.egg-info/PKG-INFO
+src/binaryalign.egg-info/SOURCES.txt
+src/binaryalign.egg-info/dependency_links.txt
+src/binaryalign.egg-info/requires.txt
+src/binaryalign.egg-info/top_level.txt

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "binaryalign"
+version = "0.1.0"
+description = "From-scratch implementation of BinaryAlign."
+readme = "README.md"
+license = "MIT"
+
+dependencies = [
+    "numpy",
+    "tqdm",
+    "omegaconf",
+    "transformers"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
