@@ -1,0 +1,34 @@
+Building and Using Parallel Texts:
+Data Driven Machine Translation and Beyond
+HLT-NAACL 2003 Workshop
+http://www.cs.unt.edu/~rada/wpt
+
+
+TRIAL DATA FOR THE ENGLISH-FRENCH WORD ALIGNMENT TASK
+
+
+Data
+----
+The trial set for English-French contains 36 sentences. See the
+"Guidelines" for details regarding the annotation scheme.
+These sentences were extracted from a set of word aligned sentences
+created by Prof.Hermann Ney and Franz Och.
+
+Files
+-----
+The following files are provided:
+trial.e - containing the English sentences
+trial.f - containing the French sentences
+trial.wa - containing the word alignments
+
+Source and target language
+-------------------------
+For this task, English is the source language, and French is the target
+language. Therefore, in a word alignment line:
+sentence_no position_L1 position_L2 [S|P] [confidence]
+
+position_L1 represents the position of the word within the English sentence, 
+position_L2 represents the position of the word within the French sentence,
+
+[the first word in a sentence is at position 1]
+

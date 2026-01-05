@@ -2,4 +2,4 @@ __pycache__/
 Icon
 .DS_Store
 binaryalign.egg-info/
-datasets/*/
+datasets/ALIGN6/
