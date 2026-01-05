@@ -10,43 +10,8 @@ from binaryalign.models import BinaryAlignClassifier, BinaryAlignModel, load_bac
 from binaryalign.data import BinaryAlignDataset, BinaryAlignCollator
 from binaryalign.tokenization import BinaryAlignTokenizer
 from binaryalign.training.trainer import Trainer
-from binaryalign.data.utils.prepare import load_hansards
+from binaryalign.data.utils.prepare import load_hansards, save_alignment_jsonl, load_alignment_jsonl
 
-
-# # Source (English)
-# src_sentences = [
-#     ["unbelievable", "results"],
-#     ["the", "house"],
-#     ["I", "like", "apples"],
-# ]
-
-# # Target (French)
-# tgt_sentences = [
-#     ["des", "resultats", "incroyables"],
-#     ["la", "maison"],
-#     ["j'", "aime", "les", "pommes"],
-# ]   
-
-# alignments = [
-#     # Sentence pair 0
-#     {
-#         (0, 2),  # unbelievable ↔ incroyables
-#         (1, 1),  # results ↔ resultats
-#     },
-
-#     # Sentence pair 1
-#     {
-#         (0, 0),  # the ↔ la
-#         (1, 1),  # house ↔ maison
-#     },
-
-#     # Sentence pair 2
-#     {
-#         (0, 0),  # I ↔ j'
-#         (1, 1),  # like ↔ aime
-#         (2, 3),  # apples ↔ pommes
-#     },
-# ]
 
 def load_config(config_path: str) -> DictConfig:
     config = OmegaConf.load(config_path)
@@ -115,10 +80,8 @@ def main():
     # ----------
     # Create DataLoader
     # ----------
-    src_path = "datasets/en-fr/Hansards/trial/trial.e"
-    tgt_path = "datasets/en-fr/Hansards/trial/trial.f"
-    align_path = "datasets/en-fr/Hansards/trial/trial.wa"
-    src_sentences, tgt_sentences, alignments = load_hansards(src_path, tgt_path, align_path)
+    json_path = "datasets/en-fr/Hansards/test/alignments.jsonl"
+    src_sentences, tgt_sentences, alignments = load_alignment_jsonl(json_path)
 
     dataset = BinaryAlignDataset(src_sentences, tgt_sentences, alignments)
     collator = BinaryAlignCollator(tokenizer)

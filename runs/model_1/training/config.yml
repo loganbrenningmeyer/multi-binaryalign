@@ -11,6 +11,6 @@ logging:
   wandb:
     enable: true
     save_ckpt: 0
-  loss_steps: 10
+  loss_steps: 1
   valid_steps: 500
   ckpt_steps: 5000

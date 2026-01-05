@@ -1,4 +1,5 @@
 import os
+import json
 import re
 from collections import defaultdict
 
@@ -20,6 +21,7 @@ def read_sentences(path: str) -> list[list[str]]:
 
     return sentences
 
+
 def read_alignments(path: str):
     alignments = defaultdict(set)
 
@@ -37,6 +39,32 @@ def read_alignments(path: str):
             alignments[sent_id].add((src_idx, tgt_idx))
 
     return alignments
+
+
+def save_alignment_jsonl(path, src_sentences, tgt_sentences, alignments):
+    with open(path, "w", encoding="utf-8") as f:
+        for src, tgt, al in zip(src_sentences, tgt_sentences, alignments):
+            record = {
+                "src_words": src,
+                "tgt_words": tgt,
+                "alignments": [list(pair) for pair in al],
+            }
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def load_alignment_jsonl(path):
+    src_sentences = []
+    tgt_sentences = []
+    alignments = []
+
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            record = json.loads(line)
+            src_sentences.append(record["src_words"])
+            tgt_sentences.append(record["tgt_words"])
+            alignments.append(set(tuple(p) for p in record["alignments"]))
+
+    return src_sentences, tgt_sentences, alignments
 
 
 def load_hansards(src_path: str, tgt_path: str, align_path: str):

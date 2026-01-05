@@ -5,6 +5,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim import Optimizer
 from omegaconf import DictConfig
+from tqdm import tqdm
 
 from binaryalign.models import BinaryAlignModel
 
@@ -56,7 +57,7 @@ class Trainer:
             epoch_loss = 0.0
             num_batches = 0
 
-            for batch in self.train_loader:
+            for batch in tqdm(self.train_loader, desc=f"Epoch {epoch}"):
                 # -- Perform training step
                 loss = self.train_step(batch)
 
