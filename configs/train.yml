@@ -3,11 +3,13 @@
 # ====================
 run:
   name: model_1
-  runs_dir: ./runs/model_1
+  runs_dir: ./runs
 
 # ====================
 # Training Parameters
 # ====================
+train:
+  epochs: 1
 
 # ====================
 # Model Configuration
@@ -18,3 +20,18 @@ model:
 # ====================
 # Dataset Configuration
 # ====================
+data:
+  batch_size: 32
+
+# ====================
+# Logging Configuration
+# ====================
+logging:
+
+  wandb:
+    enable: true
+    save_ckpt: 0
+
+  loss_steps: 10
+  valid_steps: 500
+  ckpt_steps: 5000
