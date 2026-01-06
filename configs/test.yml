@@ -2,9 +2,9 @@
 # Run Configuration
 # ====================
 run:
-  name: "50000"
+  name: "25000"
   run_dir: "./runs/french_1"
-  checkpoint: "model-pretrain-step50000.ckpt"
+  checkpoint: "model-pretrain-step25000.ckpt"
 
 # ====================
 # Inference Parameters
