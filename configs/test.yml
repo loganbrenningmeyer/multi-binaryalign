@@ -2,9 +2,9 @@
 # Run Configuration
 # ====================
 run:
-  name: "107500"
-  run_dir: "./runs/french_1"
-  checkpoint: "model-finetune-step107500.ckpt"
+  name: "12500"
+  run_dir: "./runs/french_valid_16"
+  checkpoint: "model-pretrain-step12500.ckpt"
 
 # ====================
 # Inference Parameters

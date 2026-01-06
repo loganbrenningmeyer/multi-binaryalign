@@ -174,11 +174,11 @@ class Trainer:
 
         valid_loss /= num_batches
 
-        eps = 1e-12
-        precision = tp / (tp + fp + eps)
-        recall = tp / (tp + fn + eps)
-        f1 = 2 * precision * recall / (precision + recall + eps)
-        acc = (tp + tn) / (tp + tn + fp + fn + eps)
+        eps = 1e-12    # avoid divide by 0
+        precision = tp / (tp + fp + eps)    # true positives / total pred positives
+        recall = tp / (tp + fn + eps)   # true positives / ground truth positives
+        f1 = 2 * precision * recall / (precision + recall + eps)    # harmonic mean of recall / precision
+        acc = (tp + tn) / (tp + tn + fp + fn + eps)    # true positives/negatives / total predictions
 
         return {
             "loss": valid_loss,
