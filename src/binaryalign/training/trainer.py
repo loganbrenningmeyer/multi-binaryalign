@@ -62,14 +62,15 @@ class Trainer:
         self.model.train()
 
         epoch = 1
+        train_step = 1
 
-        while self.global_step <= steps:
+        while train_step <= steps:
 
             epoch_loss = 0.0
             num_batches = 0
 
             for batch in tqdm(train_loader, desc=f"({stage}) Epoch {epoch}"):
-                if self.global_step > steps:
+                if train_step > steps:
                     break
 
                 # -- Perform training step
@@ -89,6 +90,7 @@ class Trainer:
                 epoch_loss += loss
                 num_batches += 1
                 self.global_step += 1
+                train_step += 1
 
             # -- Log epoch loss
             epoch_loss /= num_batches

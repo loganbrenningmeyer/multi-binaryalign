@@ -81,13 +81,15 @@ def main():
     model.to(device)
 
     # ----------
-    # Create optimizer
+    # Create optimizer / scheduler
     # ----------
-    # -- Initialize optimizer with pre-training learning rate
-    optimizer = optim.AdamW(model.parameters(), lr=config.train.pretrain.lr)
+    lr = config.train.pretrain.lr
+    optimizer = optim.AdamW(model.parameters(), lr=lr)
+
+    lr_warmup = config.train.pretrain.lr_warmup
     scheduler = get_linear_schedule_with_warmup(
         optimizer,
-        num_warmup_steps=int(0.05 * config.train.pretrain.steps),
+        num_warmup_steps=int(lr_warmup * config.train.pretrain.steps),
         num_training_steps=config.train.pretrain.steps
     )
 
@@ -205,9 +207,10 @@ def main():
         for pg in optimizer.param_groups:
             pg["lr"] = config.train.finetune.lr
 
+        lr_warmup = config.train.finetune.lr_warmup
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
-            num_warmup_steps=int(0.10 * config.train.finetune.steps),
+            num_warmup_steps=int(lr_warmup * config.train.finetune.steps),
             num_training_steps=config.train.finetune.steps
         )
         trainer.scheduler = scheduler

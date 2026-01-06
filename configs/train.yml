@@ -2,7 +2,7 @@
 # Run Configuration
 # ====================
 run:
-  name: french_valid_16
+  name: french_valid_16_long
   runs_dir: ./runs
   resume:
     enable: 0
@@ -13,11 +13,13 @@ run:
 # ====================
 train:
   pretrain:
-    steps: 50000
+    steps: 100000
     lr: 0.00002 #2e-5
+    lr_warmup: 0.05
   finetune:
-    steps: 5000
+    steps: 10000
     lr: 0.000004 #4e-6 = 2e-5 / 5
+    lr_warmup: 0.10
 
 
 # ====================
@@ -51,9 +53,9 @@ logging:
 
   loss_steps: 10
   valid_steps:
-    pretrain: 1000
-    finetune: 250
+    pretrain: 10000
+    finetune: 1000
 
   ckpt_steps:
-    pretrain: 12500
-    finetune: 1000
+    pretrain: 50000
+    finetune: 2500
