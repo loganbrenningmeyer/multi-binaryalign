@@ -2,10 +2,10 @@ import os
 from pathlib import Path
 import argparse
 import wandb
-import time
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
+from transformers import get_linear_schedule_with_warmup
 from omegaconf import OmegaConf, DictConfig
 
 from binaryalign.models import BinaryAlignClassifier, BinaryAlignModel, load_backbone
@@ -85,6 +85,11 @@ def main():
     # ----------
     # -- Initialize optimizer with pre-training learning rate
     optimizer = optim.AdamW(model.parameters(), lr=config.train.pretrain.lr)
+    scheduler = get_linear_schedule_with_warmup(
+        optimizer,
+        num_warmup_steps=int(0.05 * config.train.pretrain.steps),
+        num_training_steps=config.train.pretrain.steps
+    )
 
     # ----------
     # Resume training
@@ -96,6 +101,7 @@ def main():
         # -- Load BinaryAlignModel / optimizer
         model.load_state_dict(ckpt["model"])
         optimizer.load_state_dict(ckpt["optimizer"])
+        scheduler.load_state_dict(ckpt["scheduler"])
 
         # -- Move optimizer to GPU
         for state in optimizer.state.values():
@@ -125,6 +131,7 @@ def main():
     trainer = Trainer(
         model=model,
         optimizer=optimizer,
+        scheduler=scheduler,
         device=device,
         train_dir=train_dir,
         logging_config=config.logging,
@@ -136,8 +143,12 @@ def main():
     # ====================
     if config.train.pretrain.steps > 0:
         # -- Create pre-training dataset
-        pretrain_train_dataset = BinaryAlignDataset(train_manifest, finetune_tgt_lang, is_finetune=False, alpha=alpha)
-        pretrain_valid_dataset = BinaryAlignDataset(valid_manifest, finetune_tgt_lang, is_finetune=False, alpha=alpha)
+        pretrain_train_dataset = BinaryAlignDataset(
+            train_manifest, finetune_tgt_lang, is_finetune=False, alpha=alpha, sample_with_replacement=True
+        )
+        pretrain_valid_dataset = BinaryAlignDataset(
+            valid_manifest, finetune_tgt_lang, is_finetune=False, alpha=alpha, sample_with_replacement=False
+        )
 
         pretrain_train_loader = DataLoader(
             pretrain_train_dataset, 
@@ -166,8 +177,12 @@ def main():
     # ====================
     if config.train.finetune.steps > 0:
         # -- Create fine-tuning dataset
-        finetune_train_dataset = BinaryAlignDataset(train_manifest, finetune_tgt_lang, is_finetune=True, alpha=0)
-        finetune_valid_dataset = BinaryAlignDataset(valid_manifest, finetune_tgt_lang, is_finetune=True, alpha=0)
+        finetune_train_dataset = BinaryAlignDataset(
+            train_manifest, finetune_tgt_lang, is_finetune=True, alpha=0, sample_with_replacement=True
+        )
+        finetune_valid_dataset = BinaryAlignDataset(
+            valid_manifest, finetune_tgt_lang, is_finetune=True, alpha=0, sample_with_replacement=False
+        )
 
         finetune_train_loader = DataLoader(
             finetune_train_dataset,
@@ -185,10 +200,17 @@ def main():
         )
 
         # ----------
-        # Update optimizer to fine-tuning learning rate
+        # Update optimizer / scheduler for fine-tuning
         # ----------
         for pg in optimizer.param_groups:
             pg["lr"] = config.train.finetune.lr
+
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=int(0.10 * config.train.finetune.steps),
+            num_training_steps=config.train.finetune.steps
+        )
+        trainer.scheduler = scheduler
 
         trainer.train(
             train_loader=finetune_train_loader, 

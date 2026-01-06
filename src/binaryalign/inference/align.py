@@ -37,12 +37,12 @@ class BinaryAlign:
         # ----------
         # Break sentences into words 
         # ----------
-        src_words, tgt_words = self._tokenize_sentences(src_sentence, tgt_sentence)
+        src_words, tgt_words = self.tokenize_sentences(src_sentence, tgt_sentence)
 
         # ----------
         # Create inputs for BinaryAlignModel
         # ----------
-        encoding, input_ids, attention_mask, target_mask = self._create_batch(src_words, tgt_words)
+        encoding, input_ids, attention_mask, target_mask = self.create_batch(src_words, tgt_words)
 
         # ----------
         # Run inference
@@ -96,13 +96,13 @@ class BinaryAlign:
 
         return src_words, tgt_words, alignments
     
-    def _tokenize_sentences(self, src_sentence: str, tgt_sentence: str):
+    def tokenize_sentences(self, src_sentence: str, tgt_sentence: str):
         # -- Break sentences into words
         src_words = [t.text for t in self.src_nlp(src_sentence)]
         tgt_words = [t.text for t in self.tgt_nlp(tgt_sentence)]
         return src_words, tgt_words
 
-    def _create_batch(self, src_words: list[str], tgt_words: list[str]):
+    def create_batch(self, src_words: list[str], tgt_words: list[str]):
         """
         
         

@@ -4,6 +4,7 @@ import wandb
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
 from omegaconf import DictConfig
 from tqdm import tqdm
 
@@ -22,16 +23,20 @@ class Trainer:
         self,
         model: BinaryAlignModel,
         optimizer: Optimizer,
+        scheduler: LRScheduler,
         device: torch.device,
         train_dir: str,
         logging_config: DictConfig,
+        threshold: float=0.5,
         start_step: int=1
     ):
         self.model = model
         self.optimizer = optimizer
+        self.scheduler = scheduler
         self.criterion = nn.BCEWithLogitsLoss(reduction="none")
         self.device = device
         self.train_dir = train_dir
+        self.threshold = threshold
 
         # -- Logging parameters
         self.global_step = start_step
@@ -57,15 +62,14 @@ class Trainer:
         self.model.train()
 
         epoch = 1
-        train_step = 1
 
-        while train_step <= steps:
+        while self.global_step <= steps:
 
             epoch_loss = 0.0
             num_batches = 0
 
             for batch in tqdm(train_loader, desc=f"({stage}) Epoch {epoch}"):
-                if train_step > steps:
+                if self.global_step > steps:
                     break
 
                 # -- Perform training step
@@ -79,13 +83,12 @@ class Trainer:
 
                 # -- Test on validation dataset
                 if self.global_step % self.valid_steps == 0:
-                    valid_loss = self.validate(valid_loader)
-                    self.log_loss(valid_loss, self.global_step, "valid", stage)
+                    metrics = self.validate(valid_loader)
+                    self.log_valid(metrics, self.global_step, stage)
 
                 epoch_loss += loss
                 num_batches += 1
                 self.global_step += 1
-                train_step += 1
 
             # -- Log epoch loss
             epoch_loss /= num_batches
@@ -118,6 +121,7 @@ class Trainer:
 
         loss.backward()
         self.optimizer.step()
+        self.scheduler.step()
 
         return loss.item()
     
@@ -130,6 +134,8 @@ class Trainer:
 
         valid_loss = 0.0
         num_batches = 0
+
+        tp = fp = fn = tn = 0
 
         for batch in tqdm(valid_loader, desc=f"Validation"):
             input_ids = batch["input_ids"].to(self.device)
@@ -152,10 +158,43 @@ class Trainer:
             valid_loss += loss.item()
             num_batches += 1
 
+            # ----------
+            # Compute TP/FP/FN/TN
+            # ----------
+            scores = torch.sigmoid(logits)
+            preds = scores >= self.threshold
+
+            y_true = labels[mask].bool()
+            y_pred = preds[mask]
+
+            tp += int((y_pred & y_true).sum().item())
+            fp += int((y_pred & ~y_true).sum().item())
+            fn += int((~y_pred & y_true).sum().item())
+            tn += int((~y_pred & ~y_true).sum().item())
+
         valid_loss /= num_batches
 
-        return valid_loss
+        eps = 1e-12
+        precision = tp / (tp + fp + eps)
+        recall = tp / (tp + fn + eps)
+        f1 = 2 * precision * recall / (precision + recall + eps)
+        acc = (tp + tn) / (tp + tn + fp + fn + eps)
 
+        return {
+            "loss": valid_loss,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "accuracy": acc
+        }
+    
+    def log_valid(self, metrics: dict, step: int, stage: str):
+        if self.wandb_enabled:
+            wandb.log({f"{stage}/valid/loss": metrics["loss"]}, step=step)
+            wandb.log({f"{stage}/valid/f1": metrics["f1"]}, step=step)
+            wandb.log({f"{stage}/valid/precision": metrics["precision"]}, step=step)
+            wandb.log({f"{stage}/valid/recall": metrics["recall"]}, step=step)
+            wandb.log({f"{stage}/valid/accuracy": metrics["accuracy"]}, step=step)
 
     def log_loss(self, loss: float, step: int, label: str, stage: str):
         """
@@ -176,6 +215,7 @@ class Trainer:
         torch.save({
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
+            "scheduler": self.scheduler.state_dict(),
             "step": step,
             "stage": stage
         }, ckpt_path)

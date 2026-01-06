@@ -12,7 +12,14 @@ class BinaryAlignDataset(Dataset):
     Parameters:
     
     """
-    def __init__(self, manifest_path: str, finetune_tgt_lang: str, is_finetune: bool, alpha: float=0.5):
+    def __init__(
+        self, 
+        manifest_path: str, 
+        finetune_tgt_lang: str,
+        is_finetune: bool, 
+        alpha: float=0.5,
+        sample_with_replacement: bool=True
+    ):
         # ----------
         # Read datasets manifest information
         # ----------
@@ -43,12 +50,33 @@ class BinaryAlignDataset(Dataset):
                 weight = len(ds) ** alpha
                 self.weights.append(weight)
 
+        # ----------
+        # Deterministic sampling for validation
+        # ----------
+        self.sample_with_replacement = sample_with_replacement
+
+        if not sample_with_replacement:
+            self.flat = []
+            for di, ds in enumerate(self.datasets):
+                for j in range(len(ds)):
+                    self.flat.append((di, j))
+
     def __getitem__(self, idx):
-        # -- Select random language pair dataset
-        dataset = random.choices(self.datasets, weights=self.weights, k=1)[0]
-        # -- Sample random instance from chosen dataset
-        j = random.randrange(len(dataset))
-        return dataset[j]
+        # ----------
+        # Random weighted sampling (training)
+        # ----------
+        if self.sample_with_replacement:
+            # -- Select random language pair dataset
+            ds = random.choices(self.datasets, weights=self.weights, k=1)[0]
+            # -- Sample random instance from chosen dataset
+            j = random.randrange(len(ds))
+            return ds[j]
+        # ----------
+        # Deterministic (validation)
+        # ----------
+        else:
+            di, j = self.flat[idx]
+            return self.datasets[di][j]
 
     def __len__(self):
         return sum(len(ds) for ds in self.datasets)
