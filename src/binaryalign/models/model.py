@@ -33,3 +33,28 @@ class BinaryAlignModel(nn.Module):
         logits_target = logits[target_mask]  # (T)
 
         return logits_target
+    
+    @torch.no_grad()
+    def predict(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+        target_mask: torch.Tensor,
+        threshold: float=0.5
+    ):
+        """
+        
+        
+        Args:
+        
+        
+        Returns:
+        
+        """
+        self.eval()
+
+        logits = self.forward(input_ids, attention_mask, target_mask)
+        scores = torch.sigmoid(logits)
+        preds = scores >= threshold
+
+        return preds

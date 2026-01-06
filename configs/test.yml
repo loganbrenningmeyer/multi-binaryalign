@@ -1,0 +1,25 @@
+# ====================
+# Run Configuration
+# ====================
+run:
+  name: "test_1"
+  run_dir: "./runs/french_1"
+  checkpoint: "model-pretrain-step25000.ckpt"
+
+# ====================
+# Inference Parameters
+# ====================
+inference:
+  src:
+    lang: en
+    sentences: [
+      "Hello, my name is Logan."
+    ]
+  tgt:
+    lang: fr
+    sentences: [
+      "Bonjour, je m'appelle Logan ."
+    ]
+    
+  threshold: 0.5
+

@@ -4,6 +4,9 @@
 run:
   name: french_1
   runs_dir: ./runs
+  resume:
+    enable: 1
+    ckpt_name: "model-pretrain-step25000.ckpt"
 
 # ====================
 # Training Parameters

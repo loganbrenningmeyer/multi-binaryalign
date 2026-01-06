@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import argparse
 import wandb
 import time
@@ -52,10 +53,10 @@ def main():
     # ---------
     # Create Training Dirs / Save Config
     # ----------
-    train_dir = os.path.join(config.run.runs_dir, config.run.name, "training")
-    os.makedirs(os.path.join(train_dir, 'checkpoints'), exist_ok=True)
+    train_dir = Path(config.run.runs_dir) / config.run.name / "training"
+    os.makedirs(train_dir / "checkpoints", exist_ok=True)
 
-    save_config(config, os.path.join(train_dir, 'config.yml'))
+    save_config(config, train_dir / "config.yml")
 
     # ----------
     # Initialize wandb
@@ -78,70 +79,103 @@ def main():
 
     model = BinaryAlignModel(backbone, classifier)
     model.to(device)
-    
+
     # ----------
-    # Create pretraining / finetuning BinaryAlignDatasets
+    # Create optimizer
     # ----------
+    # -- Initialize optimizer with pre-training learning rate
+    optimizer = optim.AdamW(model.parameters(), lr=config.train.pretrain.lr)
+
+    # ----------
+    # Resume training
+    # ----------
+    if config.run.resume.enable:
+        ckpt_path = train_dir / "checkpoints" / config.run.resume.ckpt_name
+        ckpt = torch.load(ckpt_path, map_location="cpu")
+
+        # -- Load BinaryAlignModel / optimizer
+        model.load_state_dict(ckpt["model"])
+        optimizer.load_state_dict(ckpt["optimizer"])
+
+        # -- Move optimizer to GPU
+        for state in optimizer.state.values():
+            for k, v in state.items():
+                if torch.is_tensor(v):
+                    state[k] = v.to(device)
+
+        # -- Resume from last step
+        start_step = ckpt["step"] + 1
+    else:
+        # -- If not resuming, start at step 1
+        start_step = 1
+
+    # ====================
+    # Training
+    # ====================
     manifest_path = config.data.manifest_path
     finetune_tgt_lang = config.data.finetune.tgt_lang
     alpha = config.data.alpha
 
-    pretrain_dataset = BinaryAlignDataset(manifest_path, finetune_tgt_lang, is_finetune=False, alpha=alpha)
-    finetune_dataset = BinaryAlignDataset(manifest_path, finetune_tgt_lang, is_finetune=True, alpha=0)
-
-    # ----------
-    # Create pretraining / finetuning DataLoaders
-    # ----------
+    # -- Create collator for DataLoader
     collator = BinaryAlignCollator(tokenizer)
 
-    pretrain_loader = DataLoader(
-        pretrain_dataset, 
-        batch_size=config.data.batch_size, 
-        shuffle=False,
-        collate_fn=collator,
-        num_workers=4
-    )
-
-    finetune_loader = DataLoader(
-        finetune_dataset,
-        batch_size=config.data.batch_size,
-        shuffle=False,
-        collate_fn=collator,
-        num_workers=4
-    )
-
-    # ====================
-    # Pre-training
-    # ====================
-    # -- Initialize optimizer with pre-training learning rate
-    optimizer = optim.AdamW(model.parameters(), lr=config.train.pretrain.lr)
-
+    # -- Initialize Trainer w/ pre-training optimizer setup
     trainer = Trainer(
         model=model,
         optimizer=optimizer,
         device=device,
         train_dir=train_dir,
-        logging_config=config.logging
+        logging_config=config.logging,
+        start_step=start_step
     )
 
-    trainer.train(
-        loader=pretrain_loader, 
-        steps=config.train.pretrain.steps,
-        stage="pretrain"
-    )
+    # ====================
+    # Pre-training
+    # ====================
+    if config.train.pretrain.steps > 0:
+        # -- Create pre-training dataset
+        pretrain_dataset = BinaryAlignDataset(manifest_path, finetune_tgt_lang, is_finetune=False, alpha=alpha)
+
+        pretrain_loader = DataLoader(
+            pretrain_dataset, 
+            batch_size=config.data.batch_size, 
+            shuffle=False,
+            collate_fn=collator,
+            num_workers=4
+        )
+
+        trainer.train(
+            loader=pretrain_loader, 
+            steps=config.train.pretrain.steps,
+            stage="pretrain"
+        )
 
     # ====================
     # Fine-tuning
     # ====================
-    # -- Set fine-tuning optimizer learning rate
-    for pg in optimizer.param_groups:
-        pg["lr"] = config.train.finetune.lr
+    if config.train.finetune.steps > 0:
+        # -- Create fine-tuning dataset
+        finetune_dataset = BinaryAlignDataset(manifest_path, finetune_tgt_lang, is_finetune=True, alpha=0)
 
-    trainer.train(
-        loader=finetune_loader, 
-        steps=config.train.finetune.steps,
-        stage="finetune"
-    )
+        finetune_loader = DataLoader(
+            finetune_dataset,
+            batch_size=config.data.batch_size,
+            shuffle=False,
+            collate_fn=collator,
+            num_workers=4
+        )
+
+        # ----------
+        # Update optimizer to fine-tuning learning rate
+        # ----------
+        for pg in optimizer.param_groups:
+            pg["lr"] = config.train.finetune.lr
+
+        trainer.train(
+            loader=finetune_loader, 
+            steps=config.train.finetune.steps,
+            stage="finetune"
+        )
 
 
 

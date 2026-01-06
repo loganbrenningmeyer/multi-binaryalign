@@ -24,7 +24,8 @@ class Trainer:
         optimizer: Optimizer,
         device: torch.device,
         train_dir: str,
-        logging_config: DictConfig
+        logging_config: DictConfig,
+        start_step: int=1
     ):
         self.model = model
         self.optimizer = optimizer
@@ -33,7 +34,7 @@ class Trainer:
         self.train_dir = train_dir
 
         # -- Logging parameters
-        self.global_step = 1
+        self.global_step = start_step
         self.wandb_enabled = logging_config.wandb.enable
         self.wandb_save_ckpt = logging_config.wandb.save_ckpt
         self.loss_steps = logging_config.loss_steps
@@ -52,13 +53,13 @@ class Trainer:
         epoch = 1
         train_step = 1
 
-        while train_step < steps:
+        while train_step <= steps:
 
             epoch_loss = 0.0
             num_batches = 0
 
             for batch in tqdm(loader, desc=f"({stage}) Epoch {epoch}"):
-                if train_step >= steps:
+                if train_step > steps:
                     break
 
                 # -- Perform training step
@@ -125,5 +126,6 @@ class Trainer:
         torch.save({
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
-            "step": step
+            "step": step,
+            "stage": stage
         }, ckpt_path)
