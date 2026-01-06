@@ -23,7 +23,6 @@ class Trainer:
         model: BinaryAlignModel,
         optimizer: Optimizer,
         device: torch.device,
-        train_loader: DataLoader,
         train_dir: str,
         logging_config: DictConfig
     ):
@@ -31,17 +30,17 @@ class Trainer:
         self.optimizer = optimizer
         self.criterion = nn.BCEWithLogitsLoss()
         self.device = device
-        self.train_loader = train_loader
         self.train_dir = train_dir
 
         # -- Logging parameters
+        self.global_step = 1
         self.wandb_enabled = logging_config.wandb.enable
         self.wandb_save_ckpt = logging_config.wandb.save_ckpt
         self.loss_steps = logging_config.loss_steps
         self.valid_steps = logging_config.valid_steps
         self.ckpt_steps = logging_config.ckpt_steps
 
-    def train(self, epochs: int):
+    def train(self, loader: DataLoader, steps: int, stage: str="pretrain"):
         """
         Trains the BinaryAlignModel for the specified number of epochs.
 
@@ -50,30 +49,36 @@ class Trainer:
         """
         self.model.train()
 
-        step = 1
+        epoch = 1
+        train_step = 1
 
-        for epoch in range(epochs):
+        while train_step < steps:
 
             epoch_loss = 0.0
             num_batches = 0
 
-            for batch in tqdm(self.train_loader, desc=f"Epoch {epoch}"):
+            for batch in tqdm(loader, desc=f"({stage}) Epoch {epoch}"):
+                if train_step >= steps:
+                    break
+
                 # -- Perform training step
                 loss = self.train_step(batch)
 
                 # -- Log batch loss / save checkpoint
-                self.log_loss(loss, step, "batch")
+                self.log_loss(loss, self.global_step, "batch", stage)
 
-                if step % self.ckpt_steps == 0:
-                    self.save_checkpoint(step)
+                if self.global_step % self.ckpt_steps[stage] == 0:
+                    self.save_checkpoint(self.global_step, stage)
 
                 epoch_loss += loss
                 num_batches += 1
-                step += 1
+                self.global_step += 1
+                train_step += 1
 
             # -- Log epoch loss
             epoch_loss /= num_batches
-            self.log_loss(epoch_loss, step, "epoch")
+            self.log_loss(epoch_loss, self.global_step - 1, "epoch", stage)
+            epoch += 1
 
     def train_step(self, batch: dict):
         """
@@ -101,18 +106,21 @@ class Trainer:
 
         return loss.item()
 
-    def log_loss(self, loss: float, step: int, label: str):
+    def log_loss(self, loss: float, step: int, label: str, stage: str):
         """
         Logs loss to wandb dashboard
         """
         if self.wandb_enabled:
-            wandb.log({f"{label} loss": loss}, step=step)
+            # -- Global loss
+            wandb.log({f"global/{label}/loss": loss}, step=step)
+            # -- Stage loss
+            wandb.log({f"{stage}/{label}/loss": loss}, step=step)
 
-    def save_checkpoint(self, step: int):
+    def save_checkpoint(self, step: int, stage: str):
         """
         
         """
-        ckpt_path = os.path.join(self.train_dir, "checkpoints", f"model-step{step}.ckpt")
+        ckpt_path = os.path.join(self.train_dir, "checkpoints", f"model-{stage}-step{step}.ckpt")
 
         torch.save({
             "model": self.model.state_dict(),

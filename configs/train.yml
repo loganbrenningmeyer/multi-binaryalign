@@ -9,7 +9,13 @@ run:
 # Training Parameters
 # ====================
 train:
-  epochs: 1
+  pretrain:
+    steps: 100000
+    lr: 0.00002 #2e-5
+  finetune:
+    steps: 10000
+    lr: 0.000004 #4e-6 = 2e-5 / 5
+
 
 # ====================
 # Model Configuration
@@ -21,7 +27,12 @@ model:
 # Dataset Configuration
 # ====================
 data:
-  batch_size: 32
+  finetune:
+    src_lang: en
+    tgt_lang: fr
+  manifest_path: ./datasets/processed/manifest.json
+  batch_size: 8
+  alpha: 0.5
 
 # ====================
 # Logging Configuration
@@ -34,4 +45,7 @@ logging:
 
   loss_steps: 1
   valid_steps: 500
-  ckpt_steps: 5000
+
+  ckpt_steps:
+    pretrain: 25000
+    finetune: 2500

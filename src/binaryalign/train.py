@@ -10,7 +10,6 @@ from binaryalign.models import BinaryAlignClassifier, BinaryAlignModel, load_bac
 from binaryalign.data import BinaryAlignDataset, BinaryAlignCollator
 from binaryalign.tokenization import BinaryAlignTokenizer
 from binaryalign.training.trainer import Trainer
-from binaryalign.data.utils.prepare import load_hansards, save_alignment_jsonl, load_alignment_jsonl
 
 
 def load_config(config_path: str) -> DictConfig:
@@ -72,46 +71,75 @@ def main():
     # ----------
     # Create classifier / BinaryAlignModel
     # ----------
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     hidden_dim = backbone.config.hidden_size
     classifier = BinaryAlignClassifier(hidden_dim)
 
     model = BinaryAlignModel(backbone, classifier)
+    model.to(device)
     
     # ----------
-    # Create DataLoader
+    # Create pretraining / finetuning BinaryAlignDatasets
     # ----------
-    json_path = "datasets/en-fr/Hansards/test/alignments.jsonl"
-    src_sentences, tgt_sentences, alignments = load_alignment_jsonl(json_path)
+    manifest_path = config.data.manifest_path
+    finetune_tgt_lang = config.data.finetune.tgt_lang
+    alpha = config.data.alpha
 
-    dataset = BinaryAlignDataset(src_sentences, tgt_sentences, alignments)
+    pretrain_dataset = BinaryAlignDataset(manifest_path, finetune_tgt_lang, is_finetune=False, alpha=alpha)
+    finetune_dataset = BinaryAlignDataset(manifest_path, finetune_tgt_lang, is_finetune=True, alpha=0)
+
+    # ----------
+    # Create pretraining / finetuning DataLoaders
+    # ----------
     collator = BinaryAlignCollator(tokenizer)
 
-    dataloader = DataLoader(
-        dataset, 
+    pretrain_loader = DataLoader(
+        pretrain_dataset, 
         batch_size=config.data.batch_size, 
         shuffle=False,
         collate_fn=collator
     )
 
-    # ----------
-    # Define optimizer
-    # ----------
-    optimizer = optim.AdamW(model.parameters())
+    finetune_loader = DataLoader(
+        finetune_dataset,
+        batch_size=config.data.batch_size,
+        shuffle=False,
+        collate_fn=collator
+    )
 
-    # ----------
-    # Create Trainer
-    # ----------
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # ====================
+    # Pre-training
+    # ====================
+    # -- Initialize optimizer with pre-training learning rate
+    optimizer = optim.AdamW(model.parameters(), lr=config.train.pretrain.lr)
 
     trainer = Trainer(
         model=model,
         optimizer=optimizer,
         device=device,
-        train_loader=dataloader,
         train_dir=train_dir,
         logging_config=config.logging
     )
-    trainer.train(config.train.epochs)
+
+    trainer.train(
+        loader=pretrain_loader, 
+        steps=config.train.pretrain.steps,
+        stage="pretrain"
+    )
+
+    # ====================
+    # Fine-tuning
+    # ====================
+    # -- Set fine-tuning optimizer learning rate
+    for pg in optimizer.param_groups:
+        pg["lr"] = config.train.finetune.lr
+
+    trainer.train(
+        loader=finetune_loader, 
+        steps=config.train.finetune.steps,
+        stage="finetune"
+    )
+
 
 
 if __name__ == "__main__":

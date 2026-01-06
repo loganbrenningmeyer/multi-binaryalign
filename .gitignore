@@ -1,6 +1,7 @@
 __pycache__/
+runs/
+datasets/raw/
+wandb/
+binaryalign.egg-info/
 Icon
 .DS_Store
-binaryalign.egg-info/
-datasets/
-wandb/
