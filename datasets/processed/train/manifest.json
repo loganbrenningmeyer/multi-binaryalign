@@ -2,7 +2,7 @@
     "data": [
         {
             "name": "hansards",
-            "rel_path": "train/en-fr/hansards.jsonl",
+            "rel_path": "en-fr/hansards.jsonl",
             "src_lang": "en",
             "tgt_lang": "fr",
             "num_sentence_pairs": 436,
@@ -11,7 +11,7 @@
         },
         {
             "name": "fr_golden",
-            "rel_path": "train/en-fr/fr_golden.jsonl",
+            "rel_path": "en-fr/fr_golden.jsonl",
             "src_lang": "en",
             "tgt_lang": "fr",
             "num_sentence_pairs": 90,
@@ -20,7 +20,7 @@
         },
         {
             "name": "es_golden",
-            "rel_path": "train/en-es/es_golden.jsonl",
+            "rel_path": "en-es/es_golden.jsonl",
             "src_lang": "en",
             "tgt_lang": "es",
             "num_sentence_pairs": 90,
@@ -29,7 +29,7 @@
         },
         {
             "name": "pt_golden",
-            "rel_path": "train/en-pt/pt_golden.jsonl",
+            "rel_path": "en-pt/pt_golden.jsonl",
             "src_lang": "en",
             "tgt_lang": "pt",
             "num_sentence_pairs": 90,
@@ -38,7 +38,7 @@
         },
         {
             "name": "czenali",
-            "rel_path": "train/en-cz/czenali.jsonl",
+            "rel_path": "en-cz/czenali.jsonl",
             "src_lang": "en",
             "tgt_lang": "cz",
             "num_sentence_pairs": 2250,
@@ -47,7 +47,7 @@
         },
         {
             "name": "hindi",
-            "rel_path": "train/en-hi/hindi.jsonl",
+            "rel_path": "en-hi/hindi.jsonl",
             "src_lang": "en",
             "tgt_lang": "hi",
             "num_sentence_pairs": 103,
@@ -56,7 +56,7 @@
         },
         {
             "name": "swedish",
-            "rel_path": "train/en-sv/swedish.jsonl",
+            "rel_path": "en-sv/swedish.jsonl",
             "src_lang": "en",
             "tgt_lang": "sv",
             "num_sentence_pairs": 1048,
@@ -65,7 +65,7 @@
         },
         {
             "name": "romanian",
-            "rel_path": "train/en-ro/romanian.jsonl",
+            "rel_path": "en-ro/romanian.jsonl",
             "src_lang": "en",
             "tgt_lang": "ro",
             "num_sentence_pairs": 403,
@@ -74,7 +74,7 @@
         },
         {
             "name": "kftt",
-            "rel_path": "train/en-ja/kftt.jsonl",
+            "rel_path": "en-ja/kftt.jsonl",
             "src_lang": "en",
             "tgt_lang": "ja",
             "num_sentence_pairs": 2223,
