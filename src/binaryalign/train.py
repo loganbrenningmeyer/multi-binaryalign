@@ -112,7 +112,9 @@ def main():
     # ====================
     # Training
     # ====================
-    manifest_path = config.data.manifest_path
+    train_manifest = config.data.train_manifest
+    valid_manifest = config.data.valid_manifest
+    
     finetune_tgt_lang = config.data.finetune.tgt_lang
     alpha = config.data.alpha
 
@@ -134,10 +136,18 @@ def main():
     # ====================
     if config.train.pretrain.steps > 0:
         # -- Create pre-training dataset
-        pretrain_dataset = BinaryAlignDataset(manifest_path, finetune_tgt_lang, is_finetune=False, alpha=alpha)
+        pretrain_train_dataset = BinaryAlignDataset(train_manifest, finetune_tgt_lang, is_finetune=False, alpha=alpha)
+        pretrain_valid_dataset = BinaryAlignDataset(valid_manifest, finetune_tgt_lang, is_finetune=False, alpha=alpha)
 
-        pretrain_loader = DataLoader(
-            pretrain_dataset, 
+        pretrain_train_loader = DataLoader(
+            pretrain_train_dataset, 
+            batch_size=config.data.batch_size, 
+            shuffle=False,
+            collate_fn=collator,
+            num_workers=4
+        )
+        pretrain_valid_loader = DataLoader(
+            pretrain_valid_dataset, 
             batch_size=config.data.batch_size, 
             shuffle=False,
             collate_fn=collator,
@@ -145,7 +155,8 @@ def main():
         )
 
         trainer.train(
-            loader=pretrain_loader, 
+            train_loader=pretrain_train_loader, 
+            valid_loader=pretrain_valid_loader,
             steps=config.train.pretrain.steps,
             stage="pretrain"
         )
@@ -155,10 +166,18 @@ def main():
     # ====================
     if config.train.finetune.steps > 0:
         # -- Create fine-tuning dataset
-        finetune_dataset = BinaryAlignDataset(manifest_path, finetune_tgt_lang, is_finetune=True, alpha=0)
+        finetune_train_dataset = BinaryAlignDataset(train_manifest, finetune_tgt_lang, is_finetune=True, alpha=0)
+        finetune_valid_dataset = BinaryAlignDataset(valid_manifest, finetune_tgt_lang, is_finetune=True, alpha=0)
 
-        finetune_loader = DataLoader(
-            finetune_dataset,
+        finetune_train_loader = DataLoader(
+            finetune_train_dataset,
+            batch_size=config.data.batch_size,
+            shuffle=False,
+            collate_fn=collator,
+            num_workers=4
+        )
+        finetune_valid_loader = DataLoader(
+            finetune_valid_dataset,
             batch_size=config.data.batch_size,
             shuffle=False,
             collate_fn=collator,
@@ -172,7 +191,8 @@ def main():
             pg["lr"] = config.train.finetune.lr
 
         trainer.train(
-            loader=finetune_loader, 
+            train_loader=finetune_train_loader, 
+            valid_loader=finetune_valid_loader,
             steps=config.train.finetune.steps,
             stage="finetune"
         )

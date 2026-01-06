@@ -1,4 +1,5 @@
 import os
+import random
 from pathlib import Path
 import json
 import re
@@ -229,6 +230,17 @@ def load_kftt(src_path: str, tgt_path: str, align_path: str):
         alignments.append(align_data[sent_id])
 
     return src_sentences, tgt_sentences, alignments
+
+
+def split_indices(n: int, val_frac: float = 0.1, seed: int = 42):
+    idxs = list(range(n))
+    rng = random.Random(seed)
+    rng.shuffle(idxs)
+    n_val = int(round(n * val_frac))
+    val_idx = set(idxs[:n_val])
+    train_idx = [i for i in range(n) if i not in val_idx]
+    val_idx = [i for i in range(n) if i in val_idx]
+    return train_idx, val_idx
 
 
 def main():
@@ -516,50 +528,65 @@ def main():
     all_data["kftt"] = kftt_data
     
     # ----------
-    # Save All Data
+    # Create training / validation splits
     # ----------
-    manifest_data = {"data": []}
+    val_frac = 0.1
     out_dir = Path("./processed")
+
+    train_manifest = {"data": []}
+    valid_manifest = {"data": []}
 
     for dataset_name in all_data:
         src_lang = all_data[dataset_name]["src_lang"]
         tgt_lang = all_data[dataset_name]["tgt_lang"]
 
-        rel_path = Path(f"{src_lang}-{tgt_lang}") / f"{dataset_name}.jsonl"
-        out_path = out_dir / rel_path
+        src_sents = all_data[dataset_name]["data"]["src_sentences"]
+        tgt_sents = all_data[dataset_name]["data"]["tgt_sentences"]
+        alignments = all_data[dataset_name]["data"]["alignments"]
 
-        num_alignments = sum([len(alignment) for alignment in all_data[dataset_name]["data"]["alignments"]])
-        num_instances = sum([len(src_sent) for src_sent in all_data[dataset_name]["data"]["src_sentences"]])
+        # -- Split training / validation sentence pairs
+        n = len(src_sents)
+        train_idxs, valid_idxs = split_indices(n, val_frac)
 
-        save_dataset(
-            out_path,
-            all_data[dataset_name]["data"]["src_sentences"],
-            all_data[dataset_name]["data"]["tgt_sentences"],
-            all_data[dataset_name]["data"]["alignments"]
-        )
+        train_src = [src_sents[i] for i in train_idxs]
+        train_tgt = [tgt_sents[i] for i in train_idxs]
+        train_als = [alignments[i] for i in train_idxs]
 
-        manifest_data["data"].append({
+        valid_src = [src_sents[i] for i in valid_idxs]
+        valid_tgt = [tgt_sents[i] for i in valid_idxs]
+        valid_als = [alignments[i] for i in valid_idxs]
+
+        train_rel_path = Path("train") / f"{src_lang}-{tgt_lang}" / f"{dataset_name}.jsonl"
+        valid_rel_path = Path("valid") / f"{src_lang}-{tgt_lang}" / f"{dataset_name}.jsonl"
+
+        save_dataset(out_dir / train_rel_path, train_src, train_tgt, train_als)
+        save_dataset(out_dir / valid_rel_path, valid_src, valid_tgt, valid_als)
+
+        train_manifest["data"].append({
             "name": dataset_name,
-            "rel_path": str(rel_path),
+            "rel_path": str(train_rel_path),
             "src_lang": src_lang,
             "tgt_lang": tgt_lang,
-            "num_sentence_pairs": len(all_data[dataset_name]["data"]["src_sentences"]),
-            "num_alignments": num_alignments,
-            "num_instances": num_instances
+            "num_sentence_pairs": len(train_src),
+            "num_alignments": sum(len(a) for a in train_als),
+            "num_instances": sum(len(s) for s in train_src)
         })
 
-    manifest_path = out_dir / "manifest.json"
+        valid_manifest["data"].append({
+            "name": dataset_name,
+            "rel_path": str(valid_rel_path),
+            "src_lang": src_lang,
+            "tgt_lang": tgt_lang,
+            "num_sentence_pairs": len(valid_src),
+            "num_alignments": sum(len(a) for a in valid_als),
+            "num_instances": sum(len(s) for s in valid_src)
+        })
 
-    with open(manifest_path, "w") as f:
-        json.dump(manifest_data, f, indent=4)
+    with open(out_dir / "train" / "manifest.json", "w", encoding="utf-8") as f:
+        json.dump(train_manifest, f, ensure_ascii=False, indent=4)
 
-    # for dataset in all_data:
-    #     src_sentences = all_data[dataset]["src_sentences"]
-    #     instances = []
-    #     for sent_idx, src_sentence in enumerate(src_sentences):
-    #         instances.extend([(sent_idx, src_idx) for src_idx in range(len(src_sentence))])
-    #     all_data[dataset]["instances"] = instances
-    #     print(f"{dataset} instances: {len(instances)}")
+    with open(out_dir / "valid" / "manifest.json", "w", encoding="utf-8") as f:
+        json.dump(valid_manifest, f, ensure_ascii=False, indent=4)
 
 
 if __name__ == "__main__":

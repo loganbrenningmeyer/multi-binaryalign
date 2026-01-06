@@ -34,7 +34,8 @@ data:
   finetune:
     src_lang: en
     tgt_lang: fr
-  manifest_path: ./datasets/processed/manifest.json
+  train_manifest: ./datasets/processed/train/manifest.json
+  valid_manifest: ./datasets/processed/valid/manifest.json
   batch_size: 8
   alpha: 0.5
 

@@ -41,7 +41,13 @@ class Trainer:
         self.valid_steps = logging_config.valid_steps
         self.ckpt_steps = logging_config.ckpt_steps
 
-    def train(self, loader: DataLoader, steps: int, stage: str="pretrain"):
+    def train(
+        self, 
+        train_loader: DataLoader, 
+        valid_loader: DataLoader, 
+        steps: int, 
+        stage: str="pretrain"
+    ):
         """
         Trains the BinaryAlignModel for the specified number of epochs.
 
@@ -58,7 +64,7 @@ class Trainer:
             epoch_loss = 0.0
             num_batches = 0
 
-            for batch in tqdm(loader, desc=f"({stage}) Epoch {epoch}"):
+            for batch in tqdm(train_loader, desc=f"({stage}) Epoch {epoch}"):
                 if train_step > steps:
                     break
 
@@ -70,6 +76,11 @@ class Trainer:
 
                 if self.global_step % self.ckpt_steps[stage] == 0:
                     self.save_checkpoint(self.global_step, stage)
+
+                # -- Test on validation dataset
+                if self.global_step % self.valid_steps == 0:
+                    valid_loss = self.validate(valid_loader)
+                    self.log_loss(valid_loss, self.global_step, "valid", stage)
 
                 epoch_loss += loss
                 num_batches += 1
@@ -109,6 +120,42 @@ class Trainer:
         self.optimizer.step()
 
         return loss.item()
+    
+    @torch.no_grad()
+    def validate(self, valid_loader: DataLoader):
+        """
+        
+        """
+        self.model.eval()
+
+        valid_loss = 0.0
+        num_batches = 0
+
+        for batch in tqdm(valid_loader, desc=f"Validation"):
+            input_ids = batch["input_ids"].to(self.device)
+            attention_mask = batch["attention_mask"].to(self.device)
+            target_mask = batch["target_mask"].to(self.device)
+            labels = batch["labels"].to(self.device)
+
+            # ----------
+            # Forward pass
+            # ----------
+            logits = self.model(input_ids, attention_mask)
+
+            # ----------
+            # Compute loss / mask padding & src / average
+            # ----------
+            loss_per_token = self.criterion(logits, labels)
+            mask = target_mask & attention_mask.bool()
+            loss = loss_per_token[mask].mean()
+
+            valid_loss += loss.item()
+            num_batches += 1
+
+        valid_loss /= num_batches
+
+        return valid_loss
+
 
     def log_loss(self, loss: float, step: int, label: str, stage: str):
         """

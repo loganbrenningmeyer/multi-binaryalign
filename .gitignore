@@ -1,6 +1,7 @@
 __pycache__/
 runs/
 datasets/raw/
+datasets/old/
 wandb/
 binaryalign.egg-info/
 Icon

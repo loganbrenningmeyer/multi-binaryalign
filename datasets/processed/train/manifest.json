@@ -1,0 +1,85 @@
+{
+    "data": [
+        {
+            "name": "hansards",
+            "rel_path": "train/en-fr/hansards.jsonl",
+            "src_lang": "en",
+            "tgt_lang": "fr",
+            "num_sentence_pairs": 436,
+            "num_alignments": 3937,
+            "num_instances": 6892
+        },
+        {
+            "name": "fr_golden",
+            "rel_path": "train/en-fr/fr_golden.jsonl",
+            "src_lang": "en",
+            "tgt_lang": "fr",
+            "num_sentence_pairs": 90,
+            "num_alignments": 926,
+            "num_instances": 959
+        },
+        {
+            "name": "es_golden",
+            "rel_path": "train/en-es/es_golden.jsonl",
+            "src_lang": "en",
+            "tgt_lang": "es",
+            "num_sentence_pairs": 90,
+            "num_alignments": 757,
+            "num_instances": 959
+        },
+        {
+            "name": "pt_golden",
+            "rel_path": "train/en-pt/pt_golden.jsonl",
+            "src_lang": "en",
+            "tgt_lang": "pt",
+            "num_sentence_pairs": 90,
+            "num_alignments": 702,
+            "num_instances": 959
+        },
+        {
+            "name": "czenali",
+            "rel_path": "train/en-cz/czenali.jsonl",
+            "src_lang": "en",
+            "tgt_lang": "cz",
+            "num_sentence_pairs": 2250,
+            "num_alignments": 40054,
+            "num_instances": 53861
+        },
+        {
+            "name": "hindi",
+            "rel_path": "train/en-hi/hindi.jsonl",
+            "src_lang": "en",
+            "tgt_lang": "hi",
+            "num_sentence_pairs": 103,
+            "num_alignments": 1886,
+            "num_instances": 1386
+        },
+        {
+            "name": "swedish",
+            "rel_path": "train/en-sv/swedish.jsonl",
+            "src_lang": "en",
+            "tgt_lang": "sv",
+            "num_sentence_pairs": 1048,
+            "num_alignments": 21368,
+            "num_instances": 22093
+        },
+        {
+            "name": "romanian",
+            "rel_path": "train/en-ro/romanian.jsonl",
+            "src_lang": "en",
+            "tgt_lang": "ro",
+            "num_sentence_pairs": 403,
+            "num_alignments": 10116,
+            "num_instances": 9177
+        },
+        {
+            "name": "kftt",
+            "rel_path": "train/en-ja/kftt.jsonl",
+            "src_lang": "en",
+            "tgt_lang": "ja",
+            "num_sentence_pairs": 2223,
+            "num_alignments": 60164,
+            "num_instances": 55522
+        }
+    ]
+}
