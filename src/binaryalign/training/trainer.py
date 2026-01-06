@@ -137,7 +137,7 @@ class Trainer:
 
         tp = fp = fn = tn = 0
 
-        for batch in tqdm(valid_loader, desc=f"Validation"):
+        for batch in tqdm(valid_loader, desc=f"Validation (step {self.global_step})"):
             input_ids = batch["input_ids"].to(self.device)
             attention_mask = batch["attention_mask"].to(self.device)
             target_mask = batch["target_mask"].to(self.device)
