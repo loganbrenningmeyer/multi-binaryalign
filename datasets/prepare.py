@@ -556,11 +556,11 @@ def main():
         valid_tgt = [tgt_sents[i] for i in valid_idxs]
         valid_als = [alignments[i] for i in valid_idxs]
 
-        train_rel_path = Path("train") / f"{src_lang}-{tgt_lang}" / f"{dataset_name}.jsonl"
-        valid_rel_path = Path("valid") / f"{src_lang}-{tgt_lang}" / f"{dataset_name}.jsonl"
+        train_rel_path = Path(f"{src_lang}-{tgt_lang}") / f"{dataset_name}.jsonl"
+        valid_rel_path = Path(f"{src_lang}-{tgt_lang}") / f"{dataset_name}.jsonl"
 
-        save_dataset(out_dir / train_rel_path, train_src, train_tgt, train_als)
-        save_dataset(out_dir / valid_rel_path, valid_src, valid_tgt, valid_als)
+        save_dataset(out_dir / "train" / train_rel_path, train_src, train_tgt, train_als)
+        save_dataset(out_dir / "valid" / valid_rel_path, valid_src, valid_tgt, valid_als)
 
         train_manifest["data"].append({
             "name": dataset_name,
@@ -582,9 +582,11 @@ def main():
             "num_instances": sum(len(s) for s in valid_src)
         })
 
+    os.makedirs(out_dir / "train", exist_ok=True)
     with open(out_dir / "train" / "manifest.json", "w", encoding="utf-8") as f:
         json.dump(train_manifest, f, ensure_ascii=False, indent=4)
 
+    os.makedirs(out_dir / "valid", exist_ok=True)
     with open(out_dir / "valid" / "manifest.json", "w", encoding="utf-8") as f:
         json.dump(valid_manifest, f, ensure_ascii=False, indent=4)
 

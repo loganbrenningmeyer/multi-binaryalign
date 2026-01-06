@@ -39,6 +39,30 @@ def init_wandb(run_name: str):
             mode='offline'
         )
 
+import random
+import numpy as np
+
+def measure_lengths(dataset, tokenizer, n=2000):
+    lens = []
+    for _ in range(n):
+        ex = dataset[0]  # idx ignored if sampling dataset
+        src_words = ex["src_words"]
+        tgt_words = ex["tgt_words"]
+        i = ex["src_word_idx"]
+
+        src_marked = src_words[:i] + ["<ws>", src_words[i], "</ws>"] + src_words[i+1:]
+
+        enc = tokenizer.tokenizer(
+            src_marked,
+            tgt_words,
+            is_split_into_words=True,
+            padding=False,
+            truncation=False,   # IMPORTANT
+            return_attention_mask=False,
+        )
+        lens.append(len(enc["input_ids"]))
+    return np.array(lens)
+
 
 def main():
     # ----------
@@ -149,6 +173,16 @@ def main():
         pretrain_valid_dataset = BinaryAlignDataset(
             valid_manifest, finetune_tgt_lang, is_finetune=False, alpha=alpha, sample_with_replacement=False
         )
+
+        lens = measure_lengths(pretrain_train_dataset, tokenizer)
+        print("p50", np.percentile(lens, 50))
+        print("p90", np.percentile(lens, 90))
+        print("p95", np.percentile(lens, 95))
+        print("p99", np.percentile(lens, 99))
+        print("% > 256", (lens > 256).mean())
+        print("% > 512", (lens > 512).mean())
+
+        return
 
         pretrain_train_loader = DataLoader(
             pretrain_train_dataset, 
