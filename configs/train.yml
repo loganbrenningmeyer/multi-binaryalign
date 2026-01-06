@@ -49,8 +49,10 @@ logging:
     enable: true
     save_ckpt: 0
 
-  loss_steps: 1
-  valid_steps: 500
+  loss_steps: 10
+  valid_steps:
+    pretrain: 2000
+    finetune: 500
 
   ckpt_steps:
     pretrain: 25000

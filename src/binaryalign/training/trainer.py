@@ -82,7 +82,7 @@ class Trainer:
                     self.save_checkpoint(self.global_step, stage)
 
                 # -- Test on validation dataset
-                if self.global_step % self.valid_steps == 0:
+                if self.global_step % self.valid_steps[stage] == 0:
                     metrics = self.validate(valid_loader)
                     self.log_valid(metrics, self.global_step, stage)
 
