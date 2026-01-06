@@ -2,7 +2,7 @@
 # Run Configuration
 # ====================
 run:
-  name: french_valid
+  name: french_valid_16
   runs_dir: ./runs
   resume:
     enable: 0
@@ -13,10 +13,10 @@ run:
 # ====================
 train:
   pretrain:
-    steps: 100000
+    steps: 50000
     lr: 0.00002 #2e-5
   finetune:
-    steps: 10000
+    steps: 5000
     lr: 0.000004 #4e-6 = 2e-5 / 5
 
 
@@ -37,7 +37,7 @@ data:
     tgt_lang: fr
   train_manifest: ./datasets/processed/train/manifest.json
   valid_manifest: ./datasets/processed/valid/manifest.json
-  batch_size: 8
+  batch_size: 16
   alpha: 0.5
 
 # ====================
@@ -51,9 +51,9 @@ logging:
 
   loss_steps: 10
   valid_steps:
-    pretrain: 2000
-    finetune: 500
+    pretrain: 1000
+    finetune: 250
 
   ckpt_steps:
-    pretrain: 25000
-    finetune: 2500
+    pretrain: 12500
+    finetune: 1000

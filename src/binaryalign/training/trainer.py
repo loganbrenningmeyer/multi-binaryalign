@@ -190,11 +190,12 @@ class Trainer:
     
     def log_valid(self, metrics: dict, step: int, stage: str):
         if self.wandb_enabled:
-            wandb.log({f"{stage}/valid/loss": metrics["loss"]}, step=step)
-            wandb.log({f"{stage}/valid/f1": metrics["f1"]}, step=step)
-            wandb.log({f"{stage}/valid/precision": metrics["precision"]}, step=step)
-            wandb.log({f"{stage}/valid/recall": metrics["recall"]}, step=step)
-            wandb.log({f"{stage}/valid/accuracy": metrics["accuracy"]}, step=step)
+            for label in ["global", stage]:
+                wandb.log({f"{label}/valid/loss": metrics["loss"]}, step=step)
+                wandb.log({f"{label}/valid/f1": metrics["f1"]}, step=step)
+                wandb.log({f"{label}/valid/precision": metrics["precision"]}, step=step)
+                wandb.log({f"{label}/valid/recall": metrics["recall"]}, step=step)
+                wandb.log({f"{label}/valid/accuracy": metrics["accuracy"]}, step=step)
 
     def log_loss(self, loss: float, step: int, label: str, stage: str):
         """
