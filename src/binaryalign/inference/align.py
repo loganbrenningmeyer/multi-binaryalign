@@ -130,6 +130,8 @@ class BinaryAlign:
         src_par_id_to_words = defaultdict(list)
         src_sent_id_to_words = defaultdict(list)
 
+        tgt_sent_ids = []
+
         src_offset = 0
         tgt_offset = 0
 
@@ -174,6 +176,9 @@ class BinaryAlign:
                     src_sent_id_to_words[sent_id].append(src_idx_global)
                     src_par_id_to_words[par_id].append(src_idx_global)
 
+                for tgt_idx in range(len(tgt_words)):
+                    tgt_sent_ids.append(sent_id)
+
                 # -- Update sentence id / word index offsets
                 sent_id += 1
 
@@ -188,7 +193,8 @@ class BinaryAlign:
             src_sent_ids,
             src_sent_id_to_words,
             src_par_ids,
-            src_par_id_to_words
+            src_par_id_to_words,
+            tgt_sent_ids
         )
 
     def tokenize_words(self, src_sentence: str, tgt_sentence: str):
