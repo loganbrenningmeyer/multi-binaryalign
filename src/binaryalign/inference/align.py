@@ -127,6 +127,9 @@ class BinaryAlign:
 
         src_par_ids = []
         src_sent_ids = []
+        src_sent_to_par_ids = {}
+        src_par_to_sent_ids = defaultdict(list)
+
         src_par_id_to_words = defaultdict(list)
         src_sent_id_to_words = defaultdict(list)
 
@@ -171,10 +174,15 @@ class BinaryAlign:
                 # -------------------------
                 for src_idx in range(len(src_words)):
                     src_idx_global = src_idx + src_offset
+                    # -- Sentence / Paragraph IDs
                     src_sent_ids.append(sent_id)
                     src_par_ids.append(par_id)
+                    # -- Sentence / Paragraph IDs --> Words
                     src_sent_id_to_words[sent_id].append(src_idx_global)
                     src_par_id_to_words[par_id].append(src_idx_global)
+                    # -- Sentence <--> Paragraph Mappings
+                    src_sent_to_par_ids[sent_id] = par_id
+                    src_par_to_sent_ids[par_id].append(sent_id)
 
                 for tgt_idx in range(len(tgt_words)):
                     tgt_sent_ids.append(sent_id)
@@ -191,8 +199,10 @@ class BinaryAlign:
             src_alignments_global,
             tgt_alignments_global,
             src_sent_ids,
+            src_sent_to_par_ids,
             src_sent_id_to_words,
             src_par_ids,
+            src_par_to_sent_ids,
             src_par_id_to_words,
             tgt_sent_ids
         )
