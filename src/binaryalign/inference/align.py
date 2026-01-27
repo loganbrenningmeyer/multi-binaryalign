@@ -130,8 +130,8 @@ class BinaryAlign:
         src_sent_to_par_ids = {}
         src_par_to_sent_ids = defaultdict(list)
 
-        src_par_id_to_words = defaultdict(list)
-        src_sent_id_to_words = defaultdict(list)
+        src_par_to_word_ids = defaultdict(list)
+        src_sent_to_word_ids = defaultdict(list)
 
         tgt_sent_ids = []
 
@@ -178,8 +178,8 @@ class BinaryAlign:
                     src_sent_ids.append(sent_id)
                     src_par_ids.append(par_id)
                     # -- Sentence / Paragraph IDs --> Words
-                    src_sent_id_to_words[sent_id].append(src_idx_global)
-                    src_par_id_to_words[par_id].append(src_idx_global)
+                    src_sent_to_word_ids[sent_id].append(src_idx_global)
+                    src_par_to_word_ids[par_id].append(src_idx_global)
                     # -- Sentence <--> Paragraph Mappings
                     src_sent_to_par_ids[sent_id] = par_id
                     src_par_to_sent_ids[par_id].append(sent_id)
@@ -200,10 +200,10 @@ class BinaryAlign:
             tgt_alignments_global,
             src_sent_ids,
             src_sent_to_par_ids,
-            src_sent_id_to_words,
+            src_sent_to_word_ids,
             src_par_ids,
             src_par_to_sent_ids,
-            src_par_id_to_words,
+            src_par_to_word_ids,
             tgt_sent_ids
         )
 
