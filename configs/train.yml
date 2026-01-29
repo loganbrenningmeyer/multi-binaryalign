@@ -2,7 +2,7 @@
 # Run Configuration
 # ====================
 run:
-  name: spanish_16
+  name: all_langs
   runs_dir: ./runs
   resume:
     enable: 0
@@ -17,7 +17,7 @@ train:
     lr: 0.00002 #2e-5
     lr_warmup: 0.05
   finetune:
-    steps: 5000
+    steps: 0
     lr: 0.000004 #4e-6 = 2e-5 / 5
     lr_warmup: 0.10
 
@@ -34,9 +34,7 @@ model:
 # Dataset Configuration
 # ====================
 data:
-  finetune:
-    src_lang: en
-    tgt_lang: es
+  finetune_tgt_lang: null
   train_manifest: ./datasets/processed/train/manifest.json
   valid_manifest: ./datasets/processed/valid/manifest.json
   batch_size: 16

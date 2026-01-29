@@ -123,7 +123,7 @@ def main():
     train_manifest = config.data.train_manifest
     valid_manifest = config.data.valid_manifest
     
-    finetune_tgt_lang = config.data.finetune.tgt_lang
+    finetune_tgt_lang = config.data.finetune_tgt_lang
     alpha = config.data.alpha
 
     # -- Create collator for DataLoader
@@ -146,10 +146,18 @@ def main():
     if config.train.pretrain.steps > 0:
         # -- Create pre-training dataset
         pretrain_train_dataset = BinaryAlignDataset(
-            train_manifest, finetune_tgt_lang, is_finetune=False, alpha=alpha, sample_with_replacement=True
+            train_manifest, 
+            is_finetune=False, 
+            finetune_tgt_lang=finetune_tgt_lang,
+            alpha=alpha, 
+            sample_with_replacement=True
         )
         pretrain_valid_dataset = BinaryAlignDataset(
-            valid_manifest, finetune_tgt_lang, is_finetune=False, alpha=alpha, sample_with_replacement=False
+            valid_manifest, 
+            is_finetune=False, 
+            finetune_tgt_lang=finetune_tgt_lang, 
+            alpha=alpha, 
+            sample_with_replacement=False
         )
 
         pretrain_train_loader = DataLoader(
@@ -177,13 +185,21 @@ def main():
     # ====================
     # Fine-tuning
     # ====================
-    if config.train.finetune.steps > 0:
+    if config.train.finetune.steps > 0 and finetune_tgt_lang != None:
         # -- Create fine-tuning dataset
         finetune_train_dataset = BinaryAlignDataset(
-            train_manifest, finetune_tgt_lang, is_finetune=True, alpha=0, sample_with_replacement=True
+            train_manifest, 
+            is_finetune=True, 
+            finetune_tgt_lang=finetune_tgt_lang,
+            alpha=0, 
+            sample_with_replacement=True
         )
         finetune_valid_dataset = BinaryAlignDataset(
-            valid_manifest, finetune_tgt_lang, is_finetune=True, alpha=0, sample_with_replacement=False
+            valid_manifest, 
+            is_finetune=True, 
+            finetune_tgt_lang=finetune_tgt_lang,
+            alpha=0, 
+            sample_with_replacement=False
         )
 
         finetune_train_loader = DataLoader(

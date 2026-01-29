@@ -15,11 +15,14 @@ class BinaryAlignDataset(Dataset):
     def __init__(
         self, 
         manifest_path: str, 
-        finetune_tgt_lang: str,
-        is_finetune: bool, 
+        is_finetune: bool,
+        finetune_tgt_lang: str=None, 
         alpha: float=0.5,
         sample_with_replacement: bool=True
     ):
+        if is_finetune and finetune_tgt_lang is None:
+            raise ValueError("When is_finetune, finetune_tgt_lang must be specified.")
+        
         # ----------
         # Read datasets manifest information
         # ----------
@@ -33,12 +36,20 @@ class BinaryAlignDataset(Dataset):
         self.weights = []
 
         for entry in manifest:
-            # -- Finetuning: Use only finetune target language
+            # -------------------------
+            # Finetuning: Use only finetune target language
+            # -------------------------
             if is_finetune and entry["tgt_lang"] != finetune_tgt_lang:
                 continue
-            # -- Pretraining: Use all other target languages
-            elif not is_finetune and entry["tgt_lang"] == finetune_tgt_lang:
-                continue
+            # -------------------------
+            # Pretraining:
+            # - finetune_tgt_lang == None: Use all languages
+            # - finetune_tgt_lang != None: Use all non-finetune languages
+            # -------------------------
+            elif not is_finetune and finetune_tgt_lang != None:
+                # -- All non-finetune languages
+                if entry["tgt_lang"] == finetune_tgt_lang:
+                    continue
             else:
                 # -- Dataset json path relative to manifest location
                 jsonl_path = Path(manifest_path).parent / entry["rel_path"]
