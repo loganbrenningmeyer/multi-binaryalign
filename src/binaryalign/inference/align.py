@@ -114,6 +114,7 @@ class BinaryAlign:
         src_sent_to_word_ids = defaultdict(list)
 
         tgt_sent_ids = []
+        tgt_par_ids = []
 
         src_offset = 0
         tgt_offset = 0
@@ -167,6 +168,7 @@ class BinaryAlign:
 
                 for tgt_idx in range(len(tgt_words)):
                     tgt_sent_ids.append(sent_id)
+                    tgt_par_ids.append(par_id)
 
                 # -- Update sentence id / word index offsets
                 sent_id += 1
@@ -186,6 +188,7 @@ class BinaryAlign:
             src_par_to_sent_ids,
             src_par_to_word_ids,
             tgt_sent_ids,
+            tgt_par_ids,
         )
 
     def create_batch(self, src_words: list[str], tgt_words: list[str]):
