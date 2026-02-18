@@ -3,7 +3,7 @@
 # ====================
 run:
   name: all_langs
-  runs_dir: ./runs
+  runs_dir: ./runs/binary
   resume:
     enable: 0
     ckpt_name: null
@@ -20,6 +20,9 @@ train:
     steps: 0
     lr: 0.000004 #4e-6 = 2e-5 / 5
     lr_warmup: 0.10
+  pos_weight:
+    enable: 1
+    weight: 32.83
 
 
 # ====================

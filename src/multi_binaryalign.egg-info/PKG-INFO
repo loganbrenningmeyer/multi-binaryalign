@@ -1,0 +1,21 @@
+Metadata-Version: 2.4
+Name: multi-binaryalign
+Version: 0.1.0
+Summary: Improved one-to-many alignment adaptation of BinaryAlign.
+License-Expression: MIT
+Description-Content-Type: text/markdown
+Requires-Dist: numpy
+Requires-Dist: tqdm
+Requires-Dist: omegaconf
+Requires-Dist: transformers
+Requires-Dist: tokenizers
+Requires-Dist: safetensors
+Requires-Dist: sentencepiece
+Requires-Dist: protobuf
+Requires-Dist: spacy==3.8.0
+
+# BinaryAlign
+
+Helpful slides explaining the paper!: [BinaryAlign Slides](https://docs.google.com/presentation/d/1DWKJRzsG9Wa9Tmpg4rygu-GGT5A7HSM59KuXiEH4-fQ/edit?usp=sharing)
+
+

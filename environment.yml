@@ -1,4 +1,4 @@
-name: binaryalign
+name: multi-binaryalign
 channels: 
   - pytorch
   - nvidia

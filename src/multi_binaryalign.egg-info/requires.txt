@@ -1,0 +1,9 @@
+numpy
+tqdm
+omegaconf
+transformers
+tokenizers
+safetensors
+sentencepiece
+protobuf
+spacy==3.8.0

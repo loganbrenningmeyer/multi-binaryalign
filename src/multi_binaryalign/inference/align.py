@@ -1,8 +1,8 @@
 from collections import defaultdict
 
-from binaryalign.models import BinaryAlignModel
-from binaryalign.tokenization import BinaryAlignTokenizer, Segmenter
-from binaryalign.inference.types import AlignmentData
+from multi_binaryalign.models import BinaryAlignModel
+from multi_binaryalign.tokenization import BinaryAlignTokenizer, Segmenter
+from multi_binaryalign.inference.types import AlignmentData
 
 
 class BinaryAlign:

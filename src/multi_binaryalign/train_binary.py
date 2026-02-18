@@ -3,41 +3,45 @@ from pathlib import Path
 import argparse
 import wandb
 import torch
+import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from transformers import get_linear_schedule_with_warmup
 from omegaconf import OmegaConf, DictConfig
 
-from binaryalign.models import BinaryAlignClassifier, BinaryAlignModel, load_backbone
-from binaryalign.data import BinaryAlignDataset, BinaryAlignCollator
-from binaryalign.tokenization import BinaryAlignTokenizer
-from binaryalign.training.trainer import Trainer
+from multi_binaryalign.models import (
+    BinaryAlignClassifier,
+    BinaryAlignModel,
+    load_backbone,
+)
+from multi_binaryalign.data import BinaryAlignDataset, BinaryAlignCollator
+from multi_binaryalign.tokenization import BinaryAlignTokenizer
+from multi_binaryalign.training.binary_trainer import BinaryTrainer
 
 
 def load_config(config_path: str) -> DictConfig:
     config = OmegaConf.load(config_path)
     return config
 
+
 def save_config(config: DictConfig, save_path: str):
     OmegaConf.save(config, save_path)
 
+
 def init_wandb(run_name: str):
     """
-    Initializes wandb for logging, runs in offline mode on failure  
+    Initializes wandb for logging, runs in offline mode on failure
     """
     try:
         wandb.init(
             name=run_name,
-            project=os.environ.get("WANDB_PROJECT", "binaryalign"), 
-            entity=os.environ.get("WANDB_ENTITY", None)
+            project=os.environ.get("WANDB_PROJECT", "binaryalign"),
+            entity=os.environ.get("WANDB_ENTITY", None),
         )
     except Exception as e:
         # -- Use offline if init fails
         print(f"---- wandb.init() failed, running offline: {e}")
-        wandb.init(
-            name=run_name,
-            mode='offline'
-        )
+        wandb.init(name=run_name, mode="offline")
 
 
 def main():
@@ -67,7 +71,9 @@ def main():
     # ----------
     # Load tokenizer/backbone
     # ----------
-    tokenizer = BinaryAlignTokenizer(model_name=config.model.backbone, max_length=config.model.max_length)
+    tokenizer = BinaryAlignTokenizer(
+        model_name=config.model.backbone, max_length=config.model.max_length
+    )
     backbone = load_backbone(config.model.backbone, tokenizer.vocab_size)
 
     # ----------
@@ -90,8 +96,21 @@ def main():
     scheduler = get_linear_schedule_with_warmup(
         optimizer,
         num_warmup_steps=int(lr_warmup * config.train.pretrain.steps),
-        num_training_steps=config.train.pretrain.steps
+        num_training_steps=config.train.pretrain.steps,
     )
+
+    # -------------------------
+    # Create criterion (w/ or w/o pos_weight)
+    # -------------------------
+    # -- Enable pos_weight val from config
+    if config.train.pos_weight.enable:
+        criterion = nn.BCEWithLogitsLoss(
+            reduction="none",
+            pos_weight=torch.tensor(config.train.pos_weight.weight, device=device),
+        )
+    # -- No pos_weight
+    else:
+        criterion = nn.BCEWithLogitsLoss(reduction="none")
 
     # ----------
     # Resume training
@@ -122,7 +141,7 @@ def main():
     # ====================
     train_manifest = config.data.train_manifest
     valid_manifest = config.data.valid_manifest
-    
+
     finetune_tgt_lang = config.data.finetune_tgt_lang
     alpha = config.data.alpha
 
@@ -130,14 +149,15 @@ def main():
     collator = BinaryAlignCollator(tokenizer)
 
     # -- Initialize Trainer w/ pre-training optimizer setup
-    trainer = Trainer(
+    trainer = BinaryTrainer(
         model=model,
         optimizer=optimizer,
+        criterion=criterion,
         scheduler=scheduler,
         device=device,
         train_dir=train_dir,
         logging_config=config.logging,
-        start_step=start_step
+        start_step=start_step,
     )
 
     # ====================
@@ -146,40 +166,40 @@ def main():
     if config.train.pretrain.steps > 0:
         # -- Create pre-training dataset
         pretrain_train_dataset = BinaryAlignDataset(
-            train_manifest, 
-            is_finetune=False, 
+            train_manifest,
+            is_finetune=False,
             finetune_tgt_lang=finetune_tgt_lang,
-            alpha=alpha, 
-            sample_with_replacement=True
+            alpha=alpha,
+            sample_with_replacement=True,
         )
         pretrain_valid_dataset = BinaryAlignDataset(
-            valid_manifest, 
-            is_finetune=False, 
-            finetune_tgt_lang=finetune_tgt_lang, 
-            alpha=alpha, 
-            sample_with_replacement=False
+            valid_manifest,
+            is_finetune=False,
+            finetune_tgt_lang=finetune_tgt_lang,
+            alpha=alpha,
+            sample_with_replacement=False,
         )
 
         pretrain_train_loader = DataLoader(
-            pretrain_train_dataset, 
-            batch_size=config.data.batch_size, 
+            pretrain_train_dataset,
+            batch_size=config.data.batch_size,
             shuffle=False,
             collate_fn=collator,
-            num_workers=4
+            num_workers=4,
         )
         pretrain_valid_loader = DataLoader(
-            pretrain_valid_dataset, 
-            batch_size=config.data.batch_size, 
+            pretrain_valid_dataset,
+            batch_size=config.data.batch_size,
             shuffle=False,
             collate_fn=collator,
-            num_workers=4
+            num_workers=4,
         )
 
         trainer.train(
-            train_loader=pretrain_train_loader, 
+            train_loader=pretrain_train_loader,
             valid_loader=pretrain_valid_loader,
             steps=config.train.pretrain.steps,
-            stage="pretrain"
+            stage="pretrain",
         )
 
     # ====================
@@ -188,18 +208,18 @@ def main():
     if config.train.finetune.steps > 0 and finetune_tgt_lang != None:
         # -- Create fine-tuning dataset
         finetune_train_dataset = BinaryAlignDataset(
-            train_manifest, 
-            is_finetune=True, 
+            train_manifest,
+            is_finetune=True,
             finetune_tgt_lang=finetune_tgt_lang,
-            alpha=0, 
-            sample_with_replacement=True
+            alpha=0,
+            sample_with_replacement=True,
         )
         finetune_valid_dataset = BinaryAlignDataset(
-            valid_manifest, 
-            is_finetune=True, 
+            valid_manifest,
+            is_finetune=True,
             finetune_tgt_lang=finetune_tgt_lang,
-            alpha=0, 
-            sample_with_replacement=False
+            alpha=0,
+            sample_with_replacement=False,
         )
 
         finetune_train_loader = DataLoader(
@@ -207,14 +227,14 @@ def main():
             batch_size=config.data.batch_size,
             shuffle=False,
             collate_fn=collator,
-            num_workers=4
+            num_workers=4,
         )
         finetune_valid_loader = DataLoader(
             finetune_valid_dataset,
             batch_size=config.data.batch_size,
             shuffle=False,
             collate_fn=collator,
-            num_workers=4
+            num_workers=4,
         )
 
         # ----------
@@ -227,17 +247,16 @@ def main():
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=int(lr_warmup * config.train.finetune.steps),
-            num_training_steps=config.train.finetune.steps
+            num_training_steps=config.train.finetune.steps,
         )
         trainer.scheduler = scheduler
 
         trainer.train(
-            train_loader=finetune_train_loader, 
+            train_loader=finetune_train_loader,
             valid_loader=finetune_valid_loader,
             steps=config.train.finetune.steps,
-            stage="finetune"
+            stage="finetune",
         )
-
 
 
 if __name__ == "__main__":

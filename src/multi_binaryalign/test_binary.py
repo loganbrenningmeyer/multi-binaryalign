@@ -6,10 +6,14 @@ import spacy
 import torch
 from omegaconf import OmegaConf, DictConfig
 
-from binaryalign.models import BinaryAlignClassifier, BinaryAlignModel, load_backbone
-from binaryalign.tokenization import BinaryAlignTokenizer
-from binaryalign.inference.align import BinaryAlign
-from binaryalign.tokenization import Segmenter
+from multi_binaryalign.models import (
+    BinaryAlignClassifier,
+    BinaryAlignModel,
+    load_backbone,
+)
+from multi_binaryalign.tokenization import BinaryAlignTokenizer
+from multi_binaryalign.inference.align import BinaryAlign
+from multi_binaryalign.tokenization import Segmenter
 
 
 def load_config(config_path: str) -> DictConfig:
@@ -94,8 +98,8 @@ def main():
         src_words = segmenter.split_words(src_sent, src_lang)
         tgt_words = segmenter.split_words(tgt_sent, tgt_lang)
 
-        src_alignments, tgt_alignments = (
-            binaryalign.align_sentence_pair(src_words, tgt_words, threshold)
+        src_alignments, tgt_alignments = binaryalign.align_sentence_pair(
+            src_words, tgt_words, threshold
         )
 
         align_json["sentence_pairs"].append(

@@ -8,10 +8,10 @@ from torch.optim.lr_scheduler import LRScheduler
 from omegaconf import DictConfig
 from tqdm import tqdm
 
-from binaryalign.models import BinaryAlignModel
+from multi_binaryalign.models import BinaryAlignModel
 
 
-class Trainer:
+class BinaryTrainer:
     """
 
 
@@ -23,17 +23,18 @@ class Trainer:
         self,
         model: BinaryAlignModel,
         optimizer: Optimizer,
+        criterion: nn.BCEWithLogitsLoss,
         scheduler: LRScheduler,
         device: torch.device,
         train_dir: str,
         logging_config: DictConfig,
-        threshold: float=0.5,
-        start_step: int=1
+        threshold: float = 0.5,
+        start_step: int = 1,
     ):
         self.model = model
         self.optimizer = optimizer
         self.scheduler = scheduler
-        self.criterion = nn.BCEWithLogitsLoss(reduction="none")
+        self.criterion = criterion
         self.device = device
         self.train_dir = train_dir
         self.threshold = threshold
@@ -47,11 +48,11 @@ class Trainer:
         self.ckpt_steps = logging_config.ckpt_steps
 
     def train(
-        self, 
-        train_loader: DataLoader, 
-        valid_loader: DataLoader, 
-        steps: int, 
-        stage: str="pretrain"
+        self,
+        train_loader: DataLoader,
+        valid_loader: DataLoader,
+        steps: int,
+        stage: str = "pretrain",
     ):
         """
         Trains the BinaryAlignModel for the specified number of epochs.
@@ -98,15 +99,14 @@ class Trainer:
             epoch += 1
 
     def train_step(self, batch: dict):
-        """
-        
-        """
+        """ """
         self.model.train()
         self.optimizer.zero_grad()
 
         input_ids = batch["input_ids"].to(self.device)
         attention_mask = batch["attention_mask"].to(self.device)
         target_mask = batch["target_mask"].to(self.device)
+        word_mask = batch["word_mask"].to(self.device)
         labels = batch["labels"].to(self.device)
 
         # ----------
@@ -115,10 +115,14 @@ class Trainer:
         logits = self.model(input_ids, attention_mask)
 
         # ----------
-        # Compute loss / mask padding & src / average
+        # Compute per-subword-token loss
         # ----------
         loss_per_token = self.criterion(logits, labels)
-        mask = target_mask & attention_mask.bool()
+
+        # -------------------------
+        # Apply mask / average loss
+        # -------------------------
+        mask = target_mask & attention_mask.bool() & word_mask
         loss = loss_per_token[mask].mean()
 
         loss.backward()
@@ -126,12 +130,10 @@ class Trainer:
         self.scheduler.step()
 
         return loss.item()
-    
+
     @torch.no_grad()
     def validate(self, valid_loader: DataLoader):
-        """
-        
-        """
+        """ """
         self.model.eval()
 
         valid_loss = 0.0
@@ -143,6 +145,7 @@ class Trainer:
             input_ids = batch["input_ids"].to(self.device)
             attention_mask = batch["attention_mask"].to(self.device)
             target_mask = batch["target_mask"].to(self.device)
+            word_mask = batch["word_mask"].to(self.device)
             labels = batch["labels"].to(self.device)
 
             # ----------
@@ -151,10 +154,14 @@ class Trainer:
             logits = self.model(input_ids, attention_mask)
 
             # ----------
-            # Compute loss / mask padding & src / average
+            # Compute per-subword-token loss
             # ----------
             loss_per_token = self.criterion(logits, labels)
-            mask = target_mask & attention_mask.bool()
+
+            # -------------------------
+            # Apply mask / average loss
+            # -------------------------
+            mask = target_mask & attention_mask.bool() & word_mask
             loss = loss_per_token[mask].mean()
 
             valid_loss += loss.item()
@@ -176,20 +183,24 @@ class Trainer:
 
         valid_loss /= num_batches
 
-        eps = 1e-12    # avoid divide by 0
-        precision = tp / (tp + fp + eps)    # true positives / total pred positives
-        recall = tp / (tp + fn + eps)   # true positives / ground truth positives
-        f1 = 2 * precision * recall / (precision + recall + eps)    # harmonic mean of recall / precision
-        acc = (tp + tn) / (tp + tn + fp + fn + eps)    # true positives/negatives / total predictions
+        eps = 1e-12  # avoid divide by 0
+        precision = tp / (tp + fp + eps)  # true positives / total pred positives
+        recall = tp / (tp + fn + eps)  # true positives / ground truth positives
+        f1 = (
+            2 * precision * recall / (precision + recall + eps)
+        )  # harmonic mean of recall / precision
+        acc = (tp + tn) / (
+            tp + tn + fp + fn + eps
+        )  # true positives/negatives / total predictions
 
         return {
             "loss": valid_loss,
             "precision": precision,
             "recall": recall,
             "f1": f1,
-            "accuracy": acc
+            "accuracy": acc,
         }
-    
+
     def log_valid(self, metrics: dict, step: int, stage: str):
         if self.wandb_enabled:
             for label in ["global", stage]:
@@ -210,15 +221,18 @@ class Trainer:
             wandb.log({f"{stage}/{label}/loss": loss}, step=step)
 
     def save_checkpoint(self, step: int, stage: str):
-        """
-        
-        """
-        ckpt_path = os.path.join(self.train_dir, "checkpoints", f"model-{stage}-step{step}.ckpt")
+        """ """
+        ckpt_path = os.path.join(
+            self.train_dir, "checkpoints", f"model-{stage}-step{step}.ckpt"
+        )
 
-        torch.save({
-            "model": self.model.state_dict(),
-            "optimizer": self.optimizer.state_dict(),
-            "scheduler": self.scheduler.state_dict(),
-            "step": step,
-            "stage": stage
-        }, ckpt_path)
+        torch.save(
+            {
+                "model": self.model.state_dict(),
+                "optimizer": self.optimizer.state_dict(),
+                "scheduler": self.scheduler.state_dict(),
+                "step": step,
+                "stage": stage,
+            },
+            ckpt_path,
+        )

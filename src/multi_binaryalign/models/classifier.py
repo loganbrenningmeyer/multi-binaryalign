@@ -3,15 +3,6 @@ import torch.nn as nn
 
 
 class BinaryAlignClassifier(nn.Module):
-    """
-    
-    
-    Args:
-    
-    
-    Returns:
-    
-    """
     def __init__(self, hidden_dim: int):
         super().__init__()
 

@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "binaryalign"
+name = "multi-binaryalign"
 version = "0.1.0"
-description = "From-scratch implementation of BinaryAlign."
+description = "Improved one-to-many alignment adaptation of BinaryAlign."
 readme = "README.md"
 license = "MIT"
 
