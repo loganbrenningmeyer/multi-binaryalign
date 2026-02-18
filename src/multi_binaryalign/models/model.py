@@ -37,6 +37,7 @@ class BinaryAlignModel(nn.Module):
         input_ids: torch.Tensor,
         attention_mask: torch.Tensor,
         target_mask: torch.Tensor,
+        word_mask: torch.Tensor,
         threshold: float = 0.5,
     ):
         """
@@ -53,7 +54,7 @@ class BinaryAlignModel(nn.Module):
         logits = self.forward(input_ids, attention_mask)  # (B, L)
         scores = torch.sigmoid(logits)
 
-        mask = target_mask & attention_mask.bool()  # (B, L)
+        mask = target_mask & attention_mask.bool() & word_mask  # (B, L)
         preds = (scores >= threshold) & mask  # (B, L)
 
         return preds, scores, mask

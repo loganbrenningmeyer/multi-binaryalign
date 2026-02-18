@@ -3,6 +3,7 @@ from collections import defaultdict
 from multi_binaryalign.models import BinaryAlignModel
 from multi_binaryalign.tokenization import BinaryAlignTokenizer, Segmenter
 from multi_binaryalign.inference.types import AlignmentData
+from multi_binaryalign.data.utils import get_masks, get_word_ids
 
 
 class BinaryAlign:
@@ -29,15 +30,25 @@ class BinaryAlign:
         # -------------------------
         # Create inputs for BinaryAlignModel
         # -------------------------
-        encoding, input_ids, attention_mask, target_mask = self.create_batch(
-            src_words, tgt_words
-        )
+        batch = self.create_batch(src_words, tgt_words)
+
+        # -- IDs
+        input_ids = batch["input_ids"]
+        word_ids = batch["word_ids"]
+        # -- Masks
+        attention_mask = batch["attention_mask"]
+        target_mask = batch["target_mask"]
+        word_mask = batch["word_mask"]
 
         # -------------------------
         # Run inference
         # -------------------------
         preds, scores, mask = self.model.predict(
-            input_ids, attention_mask, target_mask, threshold
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            target_mask=target_mask,
+            word_mask=word_mask,
+            threshold=threshold,
         )
 
         # -- B = # source words, L = # subword tokens
@@ -46,9 +57,6 @@ class BinaryAlign:
         tgt_alignments = defaultdict(list)
 
         for b in range(B):
-            # -- Batch b corresponds to src_words[b]
-            word_idxs = encoding.word_ids(b)
-
             # -- Aggregate target subword scores with max
             best_score_by_tgt = {}
 
@@ -60,9 +68,9 @@ class BinaryAlign:
                 # -------------------------
                 if mask[b, l] and preds[b, l]:
                     # -- subword token l --> target word index
-                    tgt_word_idx = word_idxs[l]
+                    tgt_word_idx = int(word_ids[b, l].item())
                     # -- Ignore special tokens
-                    if tgt_word_idx is None:
+                    if tgt_word_idx < 0:
                         continue
                     # -- Logit for batch b subword token l
                     score = float(scores[b, l].item())
@@ -229,6 +237,20 @@ class BinaryAlign:
 
         input_ids = encoding["input_ids"].to(self.model.device)
         attention_mask = encoding["attention_mask"].to(self.model.device)
-        target_mask = (encoding["token_type_ids"] == 1).to(self.model.device)
 
-        return encoding, input_ids, attention_mask, target_mask
+        # -------------------------
+        # Get target_mask / word_mask
+        # -------------------------
+        target_mask, word_mask = get_masks(encoding)
+        target_mask = target_mask.to(self.model.device)
+        word_mask = word_mask.to(self.model.device)
+
+        word_ids = get_word_ids(encoding)
+
+        return {
+            "input_ids": input_ids,
+            "word_ids": word_ids,
+            "attention_mask": attention_mask,
+            "target_mask": target_mask,
+            "word_mask": word_mask,
+        }

@@ -1,6 +1,7 @@
 import torch
 
 from multi_binaryalign.tokenization import BinaryAlignTokenizer
+from multi_binaryalign.data.utils import get_masks, get_word_ids
 
 
 class BinaryAlignCollator:
@@ -29,35 +30,34 @@ class BinaryAlignCollator:
         attention_mask = encoding["attention_mask"]  # (B, L)
         B, L = input_ids.shape
 
+        # -------------------------
+        # Get target_mask & word_mask / word_ids
+        # -------------------------
+        target_mask, word_mask = get_masks(encoding)
+        word_ids = get_word_ids(encoding)
+
         # ----------
-        # Initialize target_mask / word_mask / labels
+        # Initialize subword token labels
         # ----------
-        target_mask = torch.zeros((B, L), dtype=torch.bool)
-        word_mask = torch.zeros((B, L), dtype=torch.bool)
         labels = torch.zeros((B, L), dtype=torch.float32)
 
         for b in range(B):
-            seq_ids = encoding.sequence_ids(b)  # 0=src, 1=tgt, None=special/pad
-            word_ids = encoding.word_ids(b) # token -> word index
-            aligned_set = aligned_sets[b]  # {aligned target word indices}
+            # -------------------------
+            # Get tensor of aligned target word indices: (K_b,)
+            # -- where K_b is the number of aligned target words for sample b
+            # -------------------------
+            aligned = torch.tensor(
+                sorted(aligned_sets[b]), dtype=torch.long, device=word_ids.device
+            )
+            # -- Ignore no alignments
+            if aligned.numel() == 0:
+                continue
 
-            word_idxs = encoding.word_ids(b)  # token -> word index
+            # -- Checks if batch's word_ids are in aligned set (boolean)
+            is_aligned = torch.isin(word_ids[b], aligned)   # (L,)
 
-            for l, (seq_id, word_id) in enumerate(zip(seq_ids, word_ids)):
-                # -------------------------
-                # Determine target_mask / word_mask
-                # -------------------------
-                is_tgt = seq_id == 1
-                is_word = word_id is not None
-
-                target_mask[b, l] = is_tgt
-                word_mask[b, l] = is_word
-
-                # -------------------------
-                # Set alignment label if is an aligned target word
-                # -------------------------
-                if is_tgt and is_word and (word_id in aligned_set):
-                    labels[b, l] = 1.0
+            # -- Set non-masked, aligned labels to 1
+            labels[b, target_mask[b] & word_mask[b] & is_aligned] = 1.0
 
         return {
             "input_ids": input_ids,
