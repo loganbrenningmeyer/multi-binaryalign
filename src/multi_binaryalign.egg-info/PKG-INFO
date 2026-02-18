@@ -13,6 +13,7 @@ Requires-Dist: safetensors
 Requires-Dist: sentencepiece
 Requires-Dist: protobuf
 Requires-Dist: spacy==3.8.0
+Requires-Dist: wandb
 
 # BinaryAlign
 

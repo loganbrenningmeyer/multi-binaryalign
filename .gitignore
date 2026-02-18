@@ -2,7 +2,7 @@ __pycache__/
 runs/
 datasets/raw/
 wandb/
-binaryalign.egg-info/
+multi_binaryalign.egg-info/
 Icon?
 .DS_Store
 wandb/

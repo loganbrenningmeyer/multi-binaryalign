@@ -18,7 +18,8 @@ dependencies = [
     "safetensors",
     "sentencepiece",
     "protobuf",
-    "spacy==3.8.0"
+    "spacy==3.8.0",
+    "wandb",
 ]
 
 [tool.setuptools.packages.find]

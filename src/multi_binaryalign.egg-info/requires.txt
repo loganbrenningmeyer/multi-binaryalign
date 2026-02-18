@@ -7,3 +7,4 @@ safetensors
 sentencepiece
 protobuf
 spacy==3.8.0
+wandb

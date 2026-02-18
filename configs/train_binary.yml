@@ -2,7 +2,7 @@
 # Run Configuration
 # ====================
 run:
-  name: all_langs
+  name: all_langs_pos_weight
   runs_dir: ./runs/binary
   resume:
     enable: 0
