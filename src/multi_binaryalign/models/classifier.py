@@ -8,5 +8,9 @@ class BinaryAlignClassifier(nn.Module):
 
         self.fc = nn.Linear(hidden_dim, 1)
 
-    def forward(self, hidden_states: torch.Tensor):
-        return self.fc(hidden_states)
+    def forward(self, x: torch.Tensor):
+        """
+        x (torch.Tensor)
+            Hidden states from backbone of shape (B, L, H)
+        """
+        return self.fc(x)
